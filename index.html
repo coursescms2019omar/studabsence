@@ -31,7 +31,7 @@
   .list small { color:#777; display:block; direction:ltr; text-align:right; }
   .x { background:none; color:var(--bad); width:auto; padding:4px 10px; font-size:20px; }
   .count { font-weight:bold; color:var(--bad); }
-  #toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); padding:12px 18px; border-radius:10px; color:#fff; font-size:15px; display:none; max-width:90%; text-align:center; z-index:9; }
+  #toast { position:fixed; top:70px; left:50%; transform:translateX(-50%); padding:12px 18px; border-radius:10px; color:#fff; font-size:15px; display:none; max-width:90%; text-align:center; z-index:9; }
   .hint { font-size:12px; color:#777; margin-top:6px; }
   #status { text-align:center; font-size:13px; color:#777; padding:6px; }
 
@@ -117,23 +117,46 @@
   var norm = function (s) { return String(s || '').trim().toLowerCase(); };
 
   /* ---------- رسائل وصوت ---------- */
-  function toast(msg, ok) {
+  function toast(msg, ok, ms) {
     var t = $('toast');
     t.textContent = msg;
     t.style.background = ok ? '#188038' : '#d93025';
     t.style.display = 'block';
     clearTimeout(toast._h);
-    toast._h = setTimeout(function () { t.style.display = 'none'; }, 2800);
+    toast._h = setTimeout(function () { t.style.display = 'none'; }, ms || 2800);
+  }
+
+  /* صوت واضح: سياق صوتي واحد يُفعَّل عند ضغط المستخدم على زر الكاميرا */
+  var audioCtx = null;
+  function initAudio() {
+    try {
+      var C = window.AudioContext || window.webkitAudioContext;
+      if (!audioCtx) audioCtx = new C();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) {}
+  }
+  function tone(freq, start, dur, vol, type) {
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || 'square';
+    o.frequency.value = freq;
+    o.connect(g); g.connect(audioCtx.destination);
+    var t0 = audioCtx.currentTime + start;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.start(t0); o.stop(t0 + dur + 0.02);
   }
   function beep(ok) {
     try {
-      var C = window.AudioContext || window.webkitAudioContext;
-      var c = new C(), o = c.createOscillator(), g = c.createGain();
-      o.connect(g); g.connect(c.destination);
-      o.frequency.value = ok ? 880 : 250; g.gain.value = 0.15;
-      o.start(); setTimeout(function () { o.stop(); c.close(); }, ok ? 120 : 300);
+      initAudio();
+      if (ok) {            // نجاح: نغمتان عاليتان وواضحتان
+        tone(1100, 0,    0.12, 0.9, 'square');
+        tone(1650, 0.13, 0.18, 0.9, 'square');
+      } else {             // فشل: نغمة منخفضة طويلة
+        tone(220, 0,   0.35, 0.9, 'sawtooth');
+      }
     } catch (e) {}
-    if (navigator.vibrate) navigator.vibrate(ok ? 60 : [80, 60, 80]);
+    if (navigator.vibrate) navigator.vibrate(ok ? 120 : [120, 80, 120]);
   }
 
   /* ---------- القوائم المنسدلة (تبدأ فارغة) ---------- */
@@ -244,7 +267,7 @@
       beep(false); toast('مضاف مسبقاً: ' + s.name, false); return false;
     }
     scanned.push({ id: s.id, name: s.name });
-    beep(true); toast('✔ ' + s.name, true); render();
+    beep(true); toast('✔ تمت القراءة: ' + s.name, true, 1000); render();
     return true;
   }
 
@@ -265,6 +288,7 @@
     addStudent(text);
   }
   $('btnScan').onclick = function () {
+    initAudio();
     if (!selectionOk()) return;
     if (scanner) return;
     $('reader').style.display = 'block';
