@@ -12,7 +12,8 @@
   main { max-width:560px; margin:0 auto; padding:12px; }
   .card { background:#fff; border-radius:12px; padding:12px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,.12); }
   label { display:block; font-size:14px; margin:8px 0 4px; color:#555; }
-  select, input[type=text], input[type=tel] { width:100%; padding:11px; font-size:16px; border:1px solid #ccd; border-radius:8px; background:#fff; }
+  select { width:100%; padding:11px; font-size:16px; border:1px solid #ccd; border-radius:8px; background:#fff; }
+  select:disabled { background:#eef0f3; color:#999; }
   .row { display:flex; gap:8px; }
   .row > * { flex:1; }
   button { border:0; border-radius:10px; padding:13px; font-size:16px; font-weight:bold; color:#fff; background:var(--main); cursor:pointer; width:100%; }
@@ -20,7 +21,11 @@
   button.red { background:var(--bad); }
   button.gray { background:#6b7280; }
   button:disabled { opacity:.5; }
-  #reader { width:100%; margin-top:10px; border-radius:10px; overflow:hidden; }
+
+  /* الكاميرا مربعة */
+  #reader { display:none; width:100%; max-width:340px; aspect-ratio:1 / 1; margin:12px auto 0; border-radius:12px; overflow:hidden; background:#000; }
+  #reader video { width:100% !important; height:100% !important; object-fit:cover; }
+
   .list { list-style:none; margin:0; padding:0; }
   .list li { display:flex; justify-content:space-between; align-items:center; padding:9px 4px; border-bottom:1px solid #eee; }
   .list small { color:#777; display:block; direction:ltr; text-align:right; }
@@ -29,11 +34,24 @@
   #toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); padding:12px 18px; border-radius:10px; color:#fff; font-size:15px; display:none; max-width:90%; text-align:center; z-index:9; }
   .hint { font-size:12px; color:#777; margin-top:6px; }
   #status { text-align:center; font-size:13px; color:#777; padding:6px; }
+
+  /* صفحة المراجعة */
+  #viewReview { display:none; }
+  .info { font-size:14px; line-height:1.9; }
+  .info b { color:#333; }
+  .tbl-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { border:1px solid #dde; padding:8px 6px; text-align:center; }
+  th { background:#e8eefc; }
+  tr.absent td { background:#fdd8d8; font-weight:bold; }
+  .summary { margin:8px 0; font-size:14px; }
 </style>
 </head>
 <body>
 <header>📋 تسجيل الغياب بالباركود</header>
-<main>
+
+<!-- ========== الصفحة الرئيسية ========== -->
+<main id="viewMain">
   <div id="status">... جاري تحميل البيانات</div>
 
   <div class="card">
@@ -42,25 +60,14 @@
       <div><label>الشعبة</label><select id="section"></select></div>
     </div>
     <label>المادة</label><select id="subject"></select>
-    <label>نوع المحاضرة</label>
-    <select id="type"><option value="نظري">نظري</option><option value="عملي">عملي</option></select>
-    <div class="hint" id="lockHint" style="display:none">الاختيارات مقفلة أثناء وجود طلاب في القائمة. احفظ أو امسح القائمة لتغييرها.</div>
+    <label>نوع المحاضرة</label><select id="type"></select>
+    <div class="hint" id="lockHint" style="display:none">الاختيارات مقفلة أثناء وجود طلاب في القائمة. أكمل التسجيل أو امسح القائمة لتغييرها.</div>
   </div>
 
   <div class="card">
     <button id="btnScan" class="green">📷 فتح الكاميرا ومسح الباركود</button>
     <div id="reader"></div>
     <button id="btnStop" class="red" style="display:none;margin-top:10px">⏹ إيقاف الكاميرا</button>
-
-    <label style="margin-top:14px">إذا لم تعمل الكاميرا المباشرة: التقط صورة للباركود</label>
-    <input type="file" id="fileScan" accept="image/*" capture="environment">
-    <div id="tmpReader" style="display:none"></div>
-
-    <label style="margin-top:14px">أو أدخل رقم الطالب يدوياً</label>
-    <div class="row">
-      <input type="tel" id="manualId" inputmode="numeric" placeholder="رقم الطالب">
-      <button id="btnAdd" style="flex:0 0 90px">إضافة</button>
-    </div>
   </div>
 
   <div class="card">
@@ -68,23 +75,36 @@
     <ul class="list" id="list"></ul>
     <div class="row" style="margin-top:12px">
       <button id="btnClear" class="gray">مسح القائمة</button>
-      <button id="btnSave">💾 حفظ الغياب</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="row">
-      <button id="btnReload" class="gray">🔄 تحديث البيانات</button>
-      <button id="btnKey" class="gray">🔑 تغيير الرمز</button>
+      <button id="btnReview">مراجعة الغياب ◀</button>
     </div>
   </div>
 </main>
+
+<!-- ========== صفحة المراجعة ========== -->
+<main id="viewReview">
+  <div class="card info" id="revInfo"></div>
+  <div class="card">
+    <div class="summary" id="revSummary"></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>اسم الطالب</th><th>المرحلة</th><th>الشعبة</th><th>الحالة</th></tr></thead>
+        <tbody id="revBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="row">
+    <button id="btnBack" class="gray">▶ رجوع</button>
+    <button id="btnConfirm" class="green">✔ تأكيد وإرسال البيانات</button>
+  </div>
+  <div style="height:20px"></div>
+</main>
+
 <div id="toast"></div>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
   /* ====== الإعداد الوحيد المطلوب: الصق رابط Web app هنا ====== */
-  var API_URL = 'https://script.google.com/macros/s/AKfycbz226zYe_RlsxD1lWHo6XlQZ5cCQSYUSIpHOYmvRgUwmopPzc4D8gDpRgIXr3xsr67M/exec';   // مثال: https://script.google.com/macros/s/AKfy.../exec
+  var API_URL = 'PASTE_YOUR_WEB_APP_URL_HERE';   // مثال: https://script.google.com/macros/s/AKfy.../exec
   /* ============================================================ */
 
   var DATA = { students: [], subjects: [] };
@@ -92,13 +112,11 @@
   var scanned = [];
   var scanner = null;
   var lastCode = '', lastTime = 0;
-  var KEY = '';
-  try { KEY = localStorage.getItem('absKey') || ''; } catch (e) {}
 
   var $ = function (id) { return document.getElementById(id); };
   var norm = function (s) { return String(s || '').trim().toLowerCase(); };
 
-  /* ---------- رسائل ---------- */
+  /* ---------- رسائل وصوت ---------- */
   function toast(msg, ok) {
     var t = $('toast');
     t.textContent = msg;
@@ -118,60 +136,38 @@
     if (navigator.vibrate) navigator.vibrate(ok ? 60 : [80, 60, 80]);
   }
 
-  /* ---------- الاتصال بالخادم ---------- */
-  function askKey(force) {
-    if (KEY && !force) return true;
-    var k = prompt('أدخل رمز الدخول:');
-    if (!k) return false;
-    KEY = k.trim();
-    try { localStorage.setItem('absKey', KEY); } catch (e) {}
-    return true;
-  }
-
-  function loadData() {
-    if (API_URL.indexOf('PASTE_') === 0) {
-      $('status').textContent = 'لم يتم ضبط رابط API_URL داخل index.html';
-      return;
-    }
-    if (!askKey(false)) { $('status').textContent = 'مطلوب رمز الدخول'; return; }
-    $('status').textContent = '... جاري تحميل البيانات';
-    fetch(API_URL + '?action=init&key=' + encodeURIComponent(KEY))
-      .then(function (r) { return r.json(); })
-      .then(function (j) {
-        if (!j.ok) {
-          $('status').textContent = j.error || 'فشل التحميل';
-          if (String(j.error).indexOf('رمز') >= 0) { KEY = ''; try { localStorage.removeItem('absKey'); } catch (e) {} }
-          toast(j.error || 'فشل التحميل', false);
-          return;
-        }
-        init(j.data);
-        $('status').textContent = 'تم تحميل ' + j.data.students.length + ' طالب';
-      })
-      .catch(function (e) {
-        $('status').textContent = 'تعذر الاتصال بالخادم. تحقق من الرابط ومن صلاحية Anyone';
-        console.error(e);
-      });
-  }
-
-  function init(d) {
-    DATA = d;
-    byId = {};
-    d.students.forEach(function (s) { byId[s.id] = s; });
-    var stages = [];
-    d.students.concat(d.subjects.map(function (x) { return { stage: x.stage }; })).forEach(function (x) {
-      if (x.stage && stages.indexOf(x.stage) < 0) stages.push(x.stage);
-    });
-    fill($('stage'), stages);
-    onStage();
-  }
-  function fill(sel, arr) {
+  /* ---------- القوائم المنسدلة (تبدأ فارغة) ---------- */
+  function fill(sel, arr, placeholder) {
     sel.innerHTML = '';
+    var p = document.createElement('option');
+    p.value = ''; p.textContent = placeholder;
+    sel.appendChild(p);
     arr.forEach(function (v) {
       var o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o);
     });
+    sel.value = '';
   }
+
+  function resetDropdowns() {
+    var stages = [];
+    DATA.students.forEach(function (x) { if (x.stage && stages.indexOf(x.stage) < 0) stages.push(x.stage); });
+    DATA.subjects.forEach(function (x) { if (x.stage && stages.indexOf(x.stage) < 0) stages.push(x.stage); });
+    fill($('stage'), stages, 'اختر المرحلة');
+    fill($('section'), [], 'اختر الشعبة');
+    fill($('subject'), [], 'اختر المادة');
+    fill($('type'), ['نظري', 'عملي'], 'اختر النوع');
+    $('section').disabled = true;
+    $('subject').disabled = true;
+  }
+
   function onStage() {
     var st = norm($('stage').value);
+    if (!st) {
+      fill($('section'), [], 'اختر الشعبة');
+      fill($('subject'), [], 'اختر المادة');
+      $('section').disabled = true; $('subject').disabled = true;
+      return;
+    }
     var secs = [], subs = [];
     DATA.students.forEach(function (s) {
       if (norm(s.stage) === st && secs.indexOf(s.section) < 0) secs.push(s.section);
@@ -179,17 +175,35 @@
     DATA.subjects.forEach(function (s) {
       if (norm(s.stage) === st && subs.indexOf(s.name) < 0) subs.push(s.name);
     });
-    fill($('section'), secs);
-    fill($('subject'), subs);
+    fill($('section'), secs, 'اختر الشعبة');
+    fill($('subject'), subs, 'اختر المادة');
+    $('section').disabled = false; $('subject').disabled = false;
   }
   $('stage').addEventListener('change', onStage);
-  $('btnReload').onclick = function () {
-    if (scanned.length && !confirm('القائمة الحالية ستبقى، لكن تحديث البيانات قد يغيّر الاختيارات. متابعة؟')) return;
-    loadData();
-  };
-  $('btnKey').onclick = function () { if (askKey(true)) loadData(); };
 
-  /* ---------- القائمة ---------- */
+  /* ---------- تحميل البيانات ---------- */
+  function loadData() {
+    if (API_URL.indexOf('PASTE_') === 0) {
+      $('status').textContent = 'لم يتم ضبط رابط API_URL داخل index.html';
+      return;
+    }
+    fetch(API_URL + '?action=init')
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) { $('status').textContent = j.error || 'فشل التحميل'; return; }
+        DATA = j.data;
+        byId = {};
+        DATA.students.forEach(function (s) { byId[s.id] = s; });
+        resetDropdowns();
+        $('status').textContent = 'تم تحميل ' + DATA.students.length + ' طالب';
+      })
+      .catch(function (e) {
+        $('status').textContent = 'تعذر الاتصال بالخادم. تحقق من الرابط ومن صلاحية Anyone';
+        console.error(e);
+      });
+  }
+
+  /* ---------- قائمة الغائبين ---------- */
   function render() {
     $('cnt').textContent = scanned.length;
     var ul = $('list'); ul.innerHTML = '';
@@ -203,13 +217,16 @@
       li.appendChild(d); li.appendChild(b); ul.appendChild(li);
     });
     var lock = scanned.length > 0;
-    ['stage', 'section', 'subject', 'type'].forEach(function (id) { $(id).disabled = lock; });
+    $('stage').disabled = lock;
+    $('type').disabled = lock;
+    $('section').disabled = lock || !$('stage').value;
+    $('subject').disabled = lock || !$('stage').value;
     $('lockHint').style.display = lock ? 'block' : 'none';
   }
 
   function selectionOk() {
-    if (!$('stage').value || !$('section').value || !$('subject').value) {
-      toast('اختر المرحلة والشعبة والمادة أولاً', false); return false;
+    if (!$('stage').value || !$('section').value || !$('subject').value || !$('type').value) {
+      toast('اختر المرحلة والشعبة والمادة ونوع المحاضرة أولاً', false); return false;
     }
     return true;
   }
@@ -231,7 +248,7 @@
     return true;
   }
 
-  /* ---------- الكاميرا ---------- */
+  /* ---------- الكاميرا (مربعة) ---------- */
   function cfg() {
     var F = Html5QrcodeSupportedFormats;
     return {
@@ -250,10 +267,15 @@
   $('btnScan').onclick = function () {
     if (!selectionOk()) return;
     if (scanner) return;
+    $('reader').style.display = 'block';
     scanner = new Html5Qrcode('reader', cfg());
     scanner.start(
       { facingMode: 'environment' },
-      { fps: 10, qrbox: function (w, h) { return { width: Math.floor(w * 0.9), height: Math.floor(Math.min(h, w) * 0.5) }; } },
+      {
+        fps: 10,
+        aspectRatio: 1.0,
+        qrbox: function (w, h) { var s = Math.floor(Math.min(w, h) * 0.85); return { width: s, height: s }; }
+      },
       onScan,
       function () {}
     ).then(function () {
@@ -261,7 +283,8 @@
       $('btnStop').style.display = 'block';
     }).catch(function (err) {
       scanner = null;
-      toast('تعذر فتح الكاميرا. اسمح بالوصول للكاميرا أو استخدم "التقاط صورة" بالأسفل', false);
+      $('reader').style.display = 'none';
+      toast('تعذر فتح الكاميرا. تأكد من السماح بالوصول للكاميرا من إعدادات المتصفح', false);
       console.error(err);
     });
   };
@@ -269,44 +292,81 @@
     if (!scanner) return Promise.resolve();
     var s = scanner; scanner = null;
     return s.stop().then(function () { s.clear(); }).catch(function () {}).then(function () {
+      $('reader').style.display = 'none';
       $('btnScan').style.display = 'block';
       $('btnStop').style.display = 'none';
     });
   }
   $('btnStop').onclick = stopScan;
 
-  $('fileScan').addEventListener('change', function (e) {
-    var f = e.target.files && e.target.files[0];
-    if (!f) return;
-    var h = new Html5Qrcode('tmpReader', cfg());
-    h.scanFile(f, false)
-      .then(function (t) { addStudent(t); })
-      .catch(function () { toast('لم يتم التعرف على الباركود في الصورة', false); })
-      .then(function () { try { h.clear(); } catch (x) {} e.target.value = ''; });
-  });
-
-  $('btnAdd').onclick = function () {
-    var v = $('manualId').value;
-    if (v && addStudent(v)) $('manualId').value = '';
-  };
-  $('manualId').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('btnAdd').click(); });
-
-  /* ---------- الحفظ ---------- */
+  /* ---------- مسح القائمة ---------- */
   $('btnClear').onclick = function () {
     if (!scanned.length || confirm('مسح القائمة بالكامل؟')) { scanned = []; render(); }
   };
-  $('btnSave').onclick = function () {
-    if (!scanned.length) { toast('القائمة فارغة', false); return; }
-    if (!confirm('حفظ غياب ' + scanned.length + ' طالب؟')) return;
-    var btn = $('btnSave'); btn.disabled = true; btn.textContent = '... جاري الحفظ';
-    var done = function () { btn.disabled = false; btn.textContent = '💾 حفظ الغياب'; };
 
-    // نرسل نصاً عادياً (text/plain) لتجنب مشاكل CORS مع Apps Script
+  /* ---------- صفحة المراجعة ---------- */
+  function showMain() {
+    $('viewReview').style.display = 'none';
+    $('viewMain').style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+
+  $('btnReview').onclick = function () {
+    if (!selectionOk()) return;
+    if (!scanned.length) { toast('لم يتم تسجيل أي غائب بعد', false); return; }
+    stopScan().then(function () {
+      var stage = $('stage').value, section = $('section').value;
+      var absentIds = {};
+      scanned.forEach(function (s) { absentIds[s.id] = true; });
+
+      var roster = DATA.students.filter(function (s) {
+        return norm(s.stage) === norm(stage) && norm(s.section) === norm(section);
+      });
+
+      var body = $('revBody'); body.innerHTML = '';
+      var absentCount = 0;
+      roster.forEach(function (s, i) {
+        var isAbsent = !!absentIds[s.id];
+        if (isAbsent) absentCount++;
+        var tr = document.createElement('tr');
+        if (isAbsent) tr.className = 'absent';
+        [i + 1, s.name, s.stage, s.section, isAbsent ? 'غائب' : 'حاضر'].forEach(function (v) {
+          var td = document.createElement('td'); td.textContent = v; tr.appendChild(td);
+        });
+        body.appendChild(tr);
+      });
+
+      $('revInfo').innerHTML =
+        '<div><b>المادة:</b> ' + esc($('subject').value) + '</div>' +
+        '<div><b>النوع:</b> ' + esc($('type').value) + '</div>' +
+        '<div><b>المرحلة / الشعبة:</b> ' + esc(stage) + ' / ' + esc(section) + '</div>';
+      $('revSummary').textContent =
+        'إجمالي الطلاب: ' + roster.length + ' | حاضر: ' + (roster.length - absentCount) + ' | غائب: ' + absentCount;
+
+      $('viewMain').style.display = 'none';
+      $('viewReview').style.display = 'block';
+      window.scrollTo(0, 0);
+    });
+  };
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  $('btnBack').onclick = showMain;
+
+  /* ---------- تأكيد الإرسال ---------- */
+  $('btnConfirm').onclick = function () {
+    var btn = $('btnConfirm'), back = $('btnBack');
+    btn.disabled = true; back.disabled = true; btn.textContent = '... جاري الإرسال';
+    var done = function () { btn.disabled = false; back.disabled = false; btn.textContent = '✔ تأكيد وإرسال البيانات'; };
+
+    // نص عادي (text/plain) لتجنب مشاكل CORS مع Apps Script
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({
         action: 'save',
-        key: KEY,
         payload: {
           stage: $('stage').value, section: $('section').value,
           subject: $('subject').value, type: $('type').value,
@@ -319,19 +379,23 @@
       done();
       if (!j.ok) { toast('فشل الحفظ: ' + j.error, false); return; }
       var r = j.result;
-      var msg = 'تم حفظ ' + r.saved + ' طالب';
+      var msg = 'تم حفظ ' + r.saved + ' غياب';
       if (r.duplicates) msg += ' | مكرر (سُجل سابقاً): ' + r.duplicates;
       if (r.invalid) msg += ' | غير صالح: ' + r.invalid;
       toast(msg, true);
-      scanned = []; render();
+      scanned = [];
+      resetDropdowns();
+      render();
+      showMain();
     })
     .catch(function (err) {
       done();
-      toast('تعذر الاتصال بالخادم، لم يتم الحفظ. القائمة ما زالت موجودة', false);
+      toast('تعذر الاتصال بالخادم، لم يتم الإرسال. القائمة ما زالت محفوظة', false);
       console.error(err);
     });
   };
 
+  resetDropdowns();
   render();
   loadData();
 </script>
