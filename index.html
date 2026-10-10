@@ -135,28 +135,32 @@
       if (audioCtx.state === 'suspended') audioCtx.resume();
     } catch (e) {}
   }
-  function tone(freq, start, dur, vol, type) {
+  /* نغمة بأعلى مستوى ممكن: موجة مربعة، قوة 1.0 ثابتة طوال النغمة */
+  function tone(freq, start, dur, type) {
     var o = audioCtx.createOscillator(), g = audioCtx.createGain();
     o.type = type || 'square';
     o.frequency.value = freq;
     o.connect(g); g.connect(audioCtx.destination);
     var t0 = audioCtx.currentTime + start;
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(1.0, t0 + 0.005);        // بداية سريعة
+    g.gain.setValueAtTime(1.0, t0 + dur - 0.02);            // ثبات على أقصى قوة
+    g.gain.linearRampToValueAtTime(0, t0 + dur);            // نهاية ناعمة لتجنب الطقطقة
     o.start(t0); o.stop(t0 + dur + 0.02);
   }
   function beep(ok) {
     try {
       initAudio();
-      if (ok) {            // نجاح: نغمتان عاليتان وواضحتان
-        tone(1100, 0,    0.12, 0.9, 'square');
-        tone(1650, 0.13, 0.18, 0.9, 'square');
-      } else {             // فشل: نغمة منخفضة طويلة
-        tone(220, 0,   0.35, 0.9, 'sawtooth');
+      if (ok) {   // نجاح: ثلاث نغمات صاعدة (مجموعها حوالي 0.6 ثانية)
+        tone(1568, 0,    0.16);   // صول
+        tone(2093, 0.18, 0.16);   // دو
+        tone(2637, 0.36, 0.24);   // مي
+      } else {    // فشل: طنتان منخفضتان (مجموعهما حوالي 0.5 ثانية)
+        tone(400, 0,    0.22, 'sawtooth');
+        tone(400, 0.28, 0.22, 'sawtooth');
       }
     } catch (e) {}
-    if (navigator.vibrate) navigator.vibrate(ok ? 120 : [120, 80, 120]);
+    if (navigator.vibrate) navigator.vibrate(ok ? 150 : [150, 80, 150]);
   }
 
   /* ---------- القوائم المنسدلة (تبدأ فارغة) ---------- */
