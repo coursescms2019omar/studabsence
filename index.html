@@ -67,12 +67,12 @@
 
 <!-- ========== واجهة البداية ========== -->
 <div id="splash">
-  <div class="s-title"><h4>نظام الغيابات</h4></div>
-  <div class="s-dept"><h3>قسم تكنولوجيا الإعلام الرقمي</h3></div>
-  <div class="s-name"><h6>OMAR INAAM</h6></div>
+  <div class="s-title">نظام الغيابات</div>
+  <div class="s-dept">قسم تكنولوجيا الإعلام الرقمي</div>
+  <div class="s-name">OMAR INAAM</div>
   <div class="bar" id="bar"><div id="barFill"></div></div>
   <div id="splashStatus">... جاري تحميل بيانات الطلبة</div>
-  <button id="btnEnter"><h3>دخول إلى النظام</h3></button>
+  <button id="btnEnter">دخول إلى النظام</button>
   <button id="btnRetry">إعادة المحاولة</button>
 </div>
 
@@ -137,7 +137,7 @@
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
   /* ====== الإعداد الوحيد المطلوب: الصق رابط Web app هنا ====== */
-  var API_URL = 'PASTE_YOUR_WEB_APP_URL_HERE';   // مثال: https://script.google.com/macros/s/AKfy.../exec
+  var API_URL = 'https://script.google.com/macros/s/AKfycbz226zYe_RlsxD1lWHo6XlQZ5cCQSYUSIpHOYmvRgUwmopPzc4D8gDpRgIXr3xsr67M/exec';   // مثال: https://script.google.com/macros/s/AKfy.../exec
   /* ============================================================ */
 
   var DATA = { students: [], subjects: [] };
@@ -273,7 +273,7 @@
     $('btnRetry').style.display = 'none';
     $('splashStatus').textContent = '... جاري تحميل بيانات الطلبة';
 
-    if (API_URL.indexOf('https://script.google.com/macros/s/AKfycbz226zYe_RlsxD1lWHo6XlQZ5cCQSYUSIpHOYmvRgUwmopPzc4D8gDpRgIXr3xsr67M/exec') === 0) {
+    if (API_URL.indexOf('PASTE_') === 0) {
       showFail('لم يتم ضبط رابط API_URL داخل index.html');
       return;
     }
