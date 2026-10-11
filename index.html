@@ -29,8 +29,8 @@
   .s-title { font-size:36px; font-weight:bold; margin-bottom:16px; }
   .s-dept  { font-size:21px; margin-bottom:12px; }
   .s-name  { font-size:24px; font-weight:bold; letter-spacing:3px; direction:ltr; margin-bottom:38px; }
-  .spinner { width:44px; height:44px; border:5px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:14px; }
-  @keyframes spin { to { transform:rotate(360deg); } }
+  .bar { width:min(280px,80%); height:10px; background:rgba(255,255,255,.3); border-radius:10px; overflow:hidden; margin-bottom:16px; }
+  .bar > div { height:100%; width:0; background:#fff; border-radius:10px; transition:width .4s ease; }
   #splashStatus { font-size:15px; min-height:22px; margin-bottom:18px; opacity:.95; }
   #btnEnter, #btnRetry { display:none; width:auto; min-width:220px; padding:14px 30px; font-size:19px; background:#fff; color:#0d47a1; }
 
@@ -46,6 +46,7 @@
   .list { list-style:none; margin:0; padding:0; }
   .list li { display:flex; justify-content:space-between; align-items:center; padding:9px 4px; border-bottom:1px solid #eee; }
   .list small { color:#777; display:block; direction:ltr; text-align:right; }
+  .chk { color:var(--ok); font-weight:bold; font-size:22px; margin-inline-end:10px; }
   .x { background:none; color:var(--bad); width:auto; padding:4px 10px; font-size:20px; }
   .count { font-weight:bold; color:var(--ok); }
   #toast { position:fixed; top:70px; left:50%; transform:translateX(-50%); padding:12px 18px; border-radius:10px; color:#fff; font-size:15px; display:none; max-width:90%; text-align:center; z-index:200; }
@@ -66,12 +67,12 @@
 
 <!-- ========== واجهة البداية ========== -->
 <div id="splash">
-  <div class="s-title">نظام الغيابات</div>
-  <div class="s-dept">قسم تكنولوجيا الإعلام الرقمي</div>
-  <div class="s-name"><h4>OMAR INAAM</h4></div>
-  <div class="spinner" id="spinner"></div>
+  <div class="s-title"><h4>نظام الغيابات</h4></div>
+  <div class="s-dept"><h3>قسم تكنولوجيا الإعلام الرقمي</h3></div>
+  <div class="s-name"><h6>OMAR INAAM</h6></div>
+  <div class="bar" id="bar"><div id="barFill"></div></div>
   <div id="splashStatus">... جاري تحميل بيانات الطلبة</div>
-  <button id="btnEnter">دخول إلى النظام</button>
+  <button id="btnEnter"><h3>دخول إلى النظام</h3></button>
   <button id="btnRetry">إعادة المحاولة</button>
 </div>
 
@@ -136,7 +137,7 @@
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
   /* ====== الإعداد الوحيد المطلوب: الصق رابط Web app هنا ====== */
-  var API_URL = 'https://script.google.com/macros/s/AKfycbz226zYe_RlsxD1lWHo6XlQZ5cCQSYUSIpHOYmvRgUwmopPzc4D8gDpRgIXr3xsr67M/exec';   // مثال: https://script.google.com/macros/s/AKfy.../exec
+  var API_URL = 'PASTE_YOUR_WEB_APP_URL_HERE';   // مثال: https://script.google.com/macros/s/AKfy.../exec
   /* ============================================================ */
 
   var DATA = { students: [], subjects: [] };
@@ -222,6 +223,7 @@
     fill($('type'), ['نظري', 'عملي'], 'اختر النوع');
     $('section').disabled = true;
     $('subject').disabled = true;
+    $('type').disabled = true;
   }
 
   function onStage() {
@@ -230,6 +232,7 @@
       fill($('section'), [], 'اختر الشعبة');
       fill($('subject'), [], 'اختر المادة');
       $('section').disabled = true; $('subject').disabled = true;
+      $('type').value = ''; $('type').disabled = true;
       return;
     }
     var secs = [], subs = [];
@@ -242,17 +245,35 @@
     fill($('section'), secs, 'اختر الشعبة');
     fill($('subject'), subs, 'اختر المادة');
     $('section').disabled = false; $('subject').disabled = false;
+    $('type').disabled = false;
   }
   $('stage').addEventListener('change', onStage);
 
   /* ---------- واجهة البداية وتحميل الطلبة ---------- */
+  var progTimer = null;
+  function startProgress() {
+    var w = 5;
+    $('bar').style.display = 'block';
+    $('barFill').style.width = w + '%';
+    clearInterval(progTimer);
+    progTimer = setInterval(function () {
+      w += (90 - w) * 0.08;                 // يتقدم تدريجياً حتى 90% ثم ينتظر اكتمال التحميل
+      $('barFill').style.width = w + '%';
+    }, 200);
+  }
+  function finishProgress(cb) {
+    clearInterval(progTimer);
+    $('barFill').style.width = '100%';
+    setTimeout(cb, 500);
+  }
+
   function loadData() {
-    $('spinner').style.display = 'block';
+    startProgress();
     $('btnEnter').style.display = 'none';
     $('btnRetry').style.display = 'none';
     $('splashStatus').textContent = '... جاري تحميل بيانات الطلبة';
 
-    if (API_URL.indexOf('PASTE_') === 0) {
+    if (API_URL.indexOf('https://script.google.com/macros/s/AKfycbz226zYe_RlsxD1lWHo6XlQZ5cCQSYUSIpHOYmvRgUwmopPzc4D8gDpRgIXr3xsr67M/exec') === 0) {
       showFail('لم يتم ضبط رابط API_URL داخل index.html');
       return;
     }
@@ -264,9 +285,11 @@
         byId = {};
         DATA.students.forEach(function (s) { byId[s.id] = s; });
         resetDropdowns();
-        $('spinner').style.display = 'none';
-        $('splashStatus').textContent = 'تم تحميل ' + DATA.students.length + ' طالب';
-        $('btnEnter').style.display = 'inline-block';
+        finishProgress(function () {
+          $('bar').style.display = 'none';
+          $('splashStatus').textContent = '';
+          $('btnEnter').style.display = 'inline-block';
+        });
       })
       .catch(function (e) {
         showFail('تعذر الاتصال بالخادم. تحقق من الرابط ومن الإنترنت');
@@ -274,7 +297,8 @@
       });
   }
   function showFail(msg) {
-    $('spinner').style.display = 'none';
+    clearInterval(progTimer);
+    $('bar').style.display = 'none';
     $('splashStatus').textContent = msg;
     $('btnRetry').style.display = 'inline-block';
   }
@@ -304,7 +328,9 @@
     scanned.forEach(function (s, i) {
       var li = document.createElement('li');
       var d = document.createElement('div');
-      d.textContent = s.name;
+      var chk = document.createElement('span'); chk.className = 'chk'; chk.textContent = '✔';
+      d.appendChild(chk);
+      d.appendChild(document.createTextNode(s.name));
       var sm = document.createElement('small'); sm.textContent = s.id; d.appendChild(sm);
       var b = document.createElement('button'); b.className = 'x'; b.textContent = '✕';
       b.onclick = function () { scanned.splice(i, 1); render(); };
