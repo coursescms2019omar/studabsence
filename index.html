@@ -175,8 +175,10 @@
   </div>
 
   <div class="card">
-    <div>الحاضرون: <span class="count" id="cnt">0</span></div>
-    <ul class="list" id="list"></ul>
+    <div id="presentBox" style="display:none">
+      <div>الحاضرون: <span class="count" id="cnt">0</span></div>
+      <ul class="list" id="list"></ul>
+    </div>
     <div class="row" style="margin-top:12px">
       <button id="btnClear" class="gray">مسح القائمة</button>
       <button id="btnReview">مراجعة الحضور والغياب ◀</button>
@@ -407,6 +409,7 @@
 
   /* ---------- عرض الاختيارات: قوائم أو نص ---------- */
   function updateView() {
+    renderAbsent();
     var hide = !!scanner || scanned.length > 0;   // الكاميرا مفتوحة أو بدأ التسجيل
     $('selCard').style.display = hide ? 'none' : 'block';
     $('selSummary').style.display = hide ? 'block' : 'none';
@@ -430,14 +433,15 @@
       d.appendChild(document.createTextNode(s.name));
       li.appendChild(d); ul.appendChild(li);
     });
-    renderAbsent();
     updateView();
   }
 
   /* ---------- قائمة الغائبين (عرض فقط) ---------- */
   function renderAbsent() {
     var stage = $('stage').value, section = $('section').value;
-    if (!stage || !section) { $('absentCard').style.display = 'none'; return; }
+    var showLists = !scanner && scanned.length > 0;   // تظهر القوائم بعد إيقاف الكاميرا فقط
+    $('presentBox').style.display = showLists ? 'block' : 'none';
+    if (!showLists || !stage || !section) { $('absentCard').style.display = 'none'; return; }
     var presentIds = {};
     scanned.forEach(function (s) { presentIds[s.id] = true; });
     var absent = DATA.students.filter(function (s) {
