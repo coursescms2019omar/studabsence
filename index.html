@@ -114,6 +114,13 @@
              display:flex; align-items:center; justify-content:center; font-size:30px; }
   #cfMsg { font-size:17px; line-height:1.8; color:var(--text); margin-bottom:20px; }
   .cf-card .row button { padding:12px; }
+
+  /* ===== قائمة الغائبين ===== */
+  #absentCard { display:none; }
+  .count.bad { background:var(--bad); }
+  #absentList li { background:#fef2f2; border-color:#fee2e2; }
+  .xmark { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%;
+           background:var(--bad); color:#fff; font-size:14px; margin-inline-end:10px; vertical-align:middle; }
 </style>
 </head>
 <body>
@@ -164,6 +171,11 @@
       <button id="btnClear" class="gray">مسح القائمة</button>
       <button id="btnReview">مراجعة الحضور والغياب ◀</button>
     </div>
+  </div>
+
+  <div class="card" id="absentCard">
+    <div>الغائبون (لم يتم مسحهم): <span class="count bad" id="absCnt">0</span></div>
+    <ul class="list" id="absentList"></ul>
   </div>
 </main>
 
@@ -405,11 +417,35 @@
       var chk = document.createElement('span'); chk.className = 'chk'; chk.textContent = '✔';
       d.appendChild(chk);
       d.appendChild(document.createTextNode(s.name));
-      var sm = document.createElement('small'); sm.textContent = s.id; d.appendChild(sm);
       li.appendChild(d); ul.appendChild(li);
     });
+    renderAbsent();
     updateView();
   }
+
+  /* ---------- قائمة الغائبين (عرض فقط) ---------- */
+  function renderAbsent() {
+    var stage = $('stage').value, section = $('section').value;
+    if (!stage || !section) { $('absentCard').style.display = 'none'; return; }
+    var presentIds = {};
+    scanned.forEach(function (s) { presentIds[s.id] = true; });
+    var absent = DATA.students.filter(function (s) {
+      return norm(s.stage) === norm(stage) && norm(s.section) === norm(section) && !presentIds[s.id];
+    });
+    $('absCnt').textContent = absent.length;
+    var ul = $('absentList'); ul.innerHTML = '';
+    absent.forEach(function (s) {
+      var li = document.createElement('li');
+      var d = document.createElement('div');
+      var x = document.createElement('span'); x.className = 'xmark'; x.textContent = '✖';
+      d.appendChild(x);
+      d.appendChild(document.createTextNode(s.name));
+      li.appendChild(d); ul.appendChild(li);
+    });
+    $('absentCard').style.display = 'block';
+  }
+  $('stage').addEventListener('change', renderAbsent);
+  $('section').addEventListener('change', renderAbsent);
 
   function selectionOk() {
     if (!$('stage').value || !$('section').value || !$('subject').value || !$('type').value) {
