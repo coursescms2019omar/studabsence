@@ -100,7 +100,6 @@
   td:first-child { color:#94a3b8; width:36px; }
   td:nth-child(2) { text-align:right; white-space:normal; }
   th:nth-child(2) { text-align:right; }
-  td:nth-child(3), td:nth-child(4) { color:var(--muted); font-size:14px; }
   td:last-child { color:var(--ok); }
   tbody tr:nth-child(even) td { background:#fafbfd; }
   tbody tr:last-child td { border-bottom:0; }
@@ -198,7 +197,7 @@
     <div class="summary" id="revSummary"></div>
     <div class="tbl-wrap">
       <table>
-        <thead><tr><th>#</th><th>اسم الطالب</th><th>المرحلة</th><th>الشعبة</th><th>الحالة</th></tr></thead>
+        <thead><tr><th>#</th><th>اسم الطالب</th><th>الحالة</th></tr></thead>
         <tbody id="revBody"></tbody>
       </table>
     </div>
@@ -410,6 +409,7 @@
   /* ---------- عرض الاختيارات: قوائم أو نص ---------- */
   function updateView() {
     renderAbsent();
+    $('btnReview').disabled = !!scanner;          // المراجعة لا تعمل إلا بعد إيقاف الكاميرا
     var hide = !!scanner || scanned.length > 0;   // الكاميرا مفتوحة أو بدأ التسجيل
     $('selCard').style.display = hide ? 'none' : 'block';
     $('selSummary').style.display = hide ? 'block' : 'none';
@@ -554,6 +554,7 @@
   }
 
   $('btnReview').onclick = function () {
+    if (scanner) { toast('أوقف الكاميرا أولاً ثم راجع الحضور والغياب', false); return; }
     if (!selectionOk()) return;
     if (!scanned.length) { askConfirm('لم تمسح أي طالب، سيُسجَّل جميع الطلاب غائبين. متابعة؟', openReview); return; }
     openReview();
@@ -576,7 +577,7 @@
         if (!isPresent) absentToSend.push(s.id);
         var tr = document.createElement('tr');
         if (!isPresent) tr.className = 'absent';
-        [i + 1, s.name, s.stage, s.section, isPresent ? 'حاضر' : 'غائب'].forEach(function (v) {
+        [i + 1, s.name, isPresent ? 'حاضر' : 'غائب'].forEach(function (v) {
           var td = document.createElement('td'); td.textContent = v; tr.appendChild(td);
         });
         body.appendChild(tr);
